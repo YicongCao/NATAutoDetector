@@ -23,17 +23,17 @@ namespace CustomNATClientA
             content = Encoding.ASCII.GetString(bytesData);
             return true;
         }
-        static bool ReceivePacketTimeout(ref string content, ref IPEndPoint ipFrom, UdpClient udpClient, int timeMiliseconds)
+        static bool ReceivePacketTimeout(ref string content, ref IPEndPoint ipFrom, ref UdpClient udpClient, int timeMiliseconds)
         {
             var timeToWait = TimeSpan.FromMilliseconds(timeMiliseconds);
             var asyncResult = udpClient.BeginReceive(null, null);
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
+            IPEndPoint remoteIP = null;
             if (asyncResult.IsCompleted)
             {
                 try
                 {
-                    IPEndPoint remoteEP = null;
-                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref remoteEP);
+                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref remoteIP);
                     content = Encoding.ASCII.GetString(receivedData);
                     return true;
                 }
@@ -44,6 +44,17 @@ namespace CustomNATClientA
             }
             else
             {
+                RenewUdpClient(ref udpClient);
+                
+                // 尝试结束上一个没收到包的Receive请求, 否则对下一次会造成干扰
+                //try
+                //{
+                //    udpClient.EndReceive(asyncResult, ref remoteIP);
+                //}
+                //catch (Exception ex2)
+                //{
+                //    Console.WriteLine($"ReceivePacketTimeout, EndRecive 异常: {ex2.Message}");
+                //}
                 return false;
             }
         }
@@ -58,7 +69,7 @@ namespace CustomNATClientA
             List<Response> listResp = Actions.ParseResponsesFromXML(strResp);
             return listResp;
         }
-        static List<Response> SendRequestsTimeout(List<Request> listReq, IPEndPoint ipe, UdpClient udpClient, int timeMiliseconds)
+        static List<Response> SendRequestsTimeout(List<Request> listReq, IPEndPoint ipe, ref UdpClient udpClient, int timeMiliseconds)
         {
             string strReq = Actions.PackRequestsIntoXML(listReq);
             byte[] bytesRequest = Encoding.ASCII.GetBytes(strReq);
@@ -66,22 +77,35 @@ namespace CustomNATClientA
             IPEndPoint ipFrom = new IPEndPoint(IPAddress.Any, 0);
             string strResp = "";
             List<Response> listResp = new List<Response>();
+            IPEndPoint remoteIP = null;
 
             var timeToWait = TimeSpan.FromMilliseconds(timeMiliseconds);
+
             var asyncResult = udpClient.BeginReceive(null, null);
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
             if (asyncResult.IsCompleted)
             {
                 try
                 {
-                    IPEndPoint remoteEP = null;
-                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref remoteEP);
+                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref remoteIP);
                     strResp = Encoding.ASCII.GetString(receivedData);
                 }
                 catch (Exception ex)
                 {
                     
                 }
+            }
+            else
+            {
+                RenewUdpClient(ref udpClient);
+                //try
+                //{
+                //    udpClient.EndReceive(asyncResult, ref remoteIP);
+                //}
+                //catch (Exception ex2)
+                //{
+                //    Console.WriteLine($"SendRequestsTimeout, EndRecive 异常: {ex2.Message}");
+                //}
             }
             
             if (strResp != "")
@@ -90,6 +114,14 @@ namespace CustomNATClientA
             }
             
             return listResp;
+        }
+        static void RenewUdpClient(ref UdpClient udpClient)
+        {
+            string strAddr = udpClient.Client.LocalEndPoint.ToString();
+            string strPort = strAddr.Split(':')[1];
+            int nPort = int.Parse(strPort);
+            udpClient.Close();
+            udpClient = new UdpClient(nPort);
         }
         static void Main(string[] args)
         {
@@ -106,7 +138,7 @@ namespace CustomNATClientA
                 {
                     List<Request> listReqEnd = new List<Request>();
                     listReqEnd.Add(new Request("erase", myName));
-                    SendRequestsTimeout(listReqEnd, configMgr.IPServer, udpClient, configMgr.WaitMiliseconds);
+                    SendRequestsTimeout(listReqEnd, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
                     return 0;
                 };
 
@@ -115,7 +147,9 @@ namespace CustomNATClientA
             listReq.Add(new Request("queryuser", myName));
             listReq.Add(new Request("queryuser", "B"));
             listReq.Add(new Request("a2b_r", ""));
-            List<Response> listResp = SendRequestsTimeout(listReq, configMgr.IPServer, udpClient, configMgr.WaitMiliseconds);
+            List<Response> listResp = SendRequestsTimeout(listReq, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
+            //List<Response> listResp = SendRequests(listReq, configMgr.IPServer, udpClient);
+            // 这里验证出一个坑来，同步模式老LSP没问题，用异步方式（底层IOCP），LSP会给我的包体内容有干扰
 
             IPEndPoint ipA1 = null;
             IPEndPoint ipA2 = null;
@@ -199,7 +233,7 @@ namespace CustomNATClientA
             // 验证NAT开放
             string strRecvPacket = "";
             IPEndPoint ipRecvFrom = new IPEndPoint(IPAddress.Any, 0);
-            bool bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, udpClient, configMgr.WaitMiliseconds);
+            bool bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, ref udpClient, configMgr.WaitMiliseconds);
             if (bRecv)
             {
                 Console.WriteLine($"\r\n收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
@@ -212,10 +246,10 @@ namespace CustomNATClientA
             listReq.Clear();
             listResp.Clear();
             listReq.Add(new Request("echoip", ""));
-            listResp = SendRequestsTimeout(listReq, ipB, udpClient, configMgr.WaitMiliseconds);
+            listResp = SendRequestsTimeout(listReq, ipB, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1)
             {
-                Console.WriteLine("首次与户口服务器通信失败");
+                Console.WriteLine("首次与B通信失败");
                 funcEnd();
                 return;
             }
@@ -243,7 +277,7 @@ namespace CustomNATClientA
             listReq.Clear();
             listResp.Clear();
             listReq.Add(new Request("echoip", ""));
-            listResp = SendRequestsTimeout(listReq, ipB, udpClient, configMgr.WaitMiliseconds);
+            listResp = SendRequestsTimeout(listReq, ipB, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1 || listResp[0].ResultInteger != 0)
             {
                 Console.WriteLine("让S命令B发送包给我失败");
@@ -252,7 +286,7 @@ namespace CustomNATClientA
             }
             strRecvPacket = "";
             ipRecvFrom = new IPEndPoint(IPAddress.Any, 0);
-            bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, udpClient, configMgr.WaitMiliseconds);
+            bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, ref udpClient, configMgr.WaitMiliseconds);
             if (bRecv)
             {
                 Console.WriteLine($"\r\n收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
