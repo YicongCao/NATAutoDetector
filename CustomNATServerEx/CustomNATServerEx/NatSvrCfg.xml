@@ -3,5 +3,5 @@
   <!-- ClinetBIP : 客户端B的IP地址-->
   <!-- ClientBPortCom : 客户端B接收Server命令的端口-->
   <!-- ClinetBPortEcho : 客户端B的IP回显端口, 暂未用到，仅供标记-->
-  <common LocalPort="7777" BufferSize="20480" Log="True" ClientBIP="139.199.88.43" ClientBPortCom="12777" ClinetBPortEcho="12779"/>
+  <common LocalPort="7777" BufferSize="20480" Log="True" ClientBIP="139.199.88.43" ClientBPortCom="12777" ClinetBPortEcho="12780"/>
 </config>

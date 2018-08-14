@@ -66,6 +66,7 @@ namespace CustomNATClientB
                         string strEchoIPResp = Actions.PackResponsesIntoXML(listEchoIPResp);
                         byte[] bytesEchoIPResponse = Encoding.ASCII.GetBytes(strEchoIPResp);
                         udpServerEcho.Send(arg1, bytesEchoIPResponse, 0, bytesEchoIPResponse.Length);
+                        Console.WriteLine($"请求结果:\r\n{strEchoIPResp}");
                         break;
                     
                     case "a2b_r":
@@ -94,12 +95,12 @@ namespace CustomNATClientB
                                 Thread.Sleep(100);
                                 UdpClient udpClient = new UdpClient(0);
                                 udpClient.Send(bytesRespForA, bytesRespForA.Length, ipa);
-                                udpClient.Close();
                                 Log($"已发送a2b_r_confirm确认包给: [addr] {ipa.ToString()} [localaddr] {udpClient.Client.LocalEndPoint}");
+                                udpClient.Close();
                             }
                             catch (Exception e)
                             {
-                                Console.WriteLine($"a2b_r请求处理异常: {e.Message}");
+                                Console.WriteLine($"a2b_r请求处理异常: {e.ToString()}");
                             }
                         }
                         else
