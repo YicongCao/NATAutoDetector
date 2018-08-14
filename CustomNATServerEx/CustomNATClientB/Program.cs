@@ -91,6 +91,7 @@ namespace CustomNATClientB
                         {
                             try
                             {
+                                Thread.Sleep(100);
                                 UdpClient udpClient = new UdpClient(0);
                                 udpClient.Send(bytesRespForA, bytesRespForA.Length, ipa);
                                 udpClient.Close();

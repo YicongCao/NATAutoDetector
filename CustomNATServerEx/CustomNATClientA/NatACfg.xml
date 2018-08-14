@@ -1,0 +1,4 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<config>
+  <common ServerIP="139.199.88.43" ServerPort="7777" Wait="2000"/>
+</config>
