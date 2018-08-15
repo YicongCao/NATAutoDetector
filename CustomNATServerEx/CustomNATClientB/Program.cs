@@ -92,7 +92,7 @@ namespace CustomNATClientB
                         {
                             try
                             {
-                                Thread.Sleep(100);
+                                //Thread.Sleep(100);
                                 UdpClient udpClient = new UdpClient(0);
                                 udpClient.Send(bytesRespForA, bytesRespForA.Length, ipa);
                                 Log($"已发送a2b_r_confirm确认包给: [addr] {ipa.ToString()} [localaddr] {udpClient.Client.LocalEndPoint}");
