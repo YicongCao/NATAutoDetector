@@ -125,6 +125,8 @@ namespace CustomNATClientA
         }
         static void Main(string[] args)
         {
+            // For AutoLog
+            string strNATResult = "", strLocalIP = "", strOutIP = "", strMyName="";
             Console.WriteLine("NAT 探查程序开始运行");
             MyConfigMgr configMgr = new MyConfigMgr();
             configMgr.Init();
@@ -132,6 +134,8 @@ namespace CustomNATClientA
             UdpClient udpClient = new UdpClient(0);
             Console.WriteLine($"本机名称: {myName}");
             Console.WriteLine($"本地地址: {udpClient.Client.LocalEndPoint.ToString()}");
+            strMyName = myName;
+            strLocalIP = udpClient.Client.LocalEndPoint.ToString();
             Thread.Sleep(configMgr.WaitMiliseconds);
 
             Func<int> funcEnd =
@@ -140,8 +144,21 @@ namespace CustomNATClientA
                     List<Request> listReqEnd = new List<Request>();
                     listReqEnd.Add(new Request("erase", myName));
                     SendRequestsTimeout(listReqEnd, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
-                    Console.WriteLine("\r\n按任意键退出探测程序");
-                    Console.ReadKey(true);
+                    udpClient.Close();
+                    if (configMgr.AutoPilot)
+                    {
+                        string strLog = configMgr.AutoLogFormat.Replace("result", strNATResult)
+                                                               .Replace("name", strMyName)
+                                                               .Replace("localip", strLocalIP)
+                                                               .Replace("outip", strOutIP);
+                        System.IO.File.AppendAllText("NATDetect.log", strLog + Environment.NewLine);
+                        Console.WriteLine("\r\n程序即将自动退出");
+                    }
+                    else
+                    {
+                        Console.WriteLine("\r\n按任意键退出探测程序");
+                        Console.ReadKey(true);
+                    }
                     return 0;
                 };
 
@@ -185,6 +202,7 @@ namespace CustomNATClientA
                     try
                     {
                         ipA1 = new IPEndPoint(IPAddress.Parse(strIPSlice[0]), int.Parse(strIPSlice[1]));
+                        strOutIP = ipA1.ToString();
                     }
                     catch
                     {
@@ -244,6 +262,7 @@ namespace CustomNATClientA
             {
                 Console.WriteLine($"收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
                 Console.WriteLine("\r\n检测到【NAT开放 - 完全圆锥NAT】, 探测完成");
+                strNATResult = "完全圆锥NAT";
                 funcEnd();
                 return;
             }
@@ -264,6 +283,7 @@ namespace CustomNATClientA
                 funcEnd();
                 return;
             }
+            Console.WriteLine("主动联系伙伴成功");
             Console.WriteLine($"伙伴给出的本机地址: {listResp[0].ResultString}");
             string[] ep2 = listResp[0].ResultString.Split(':');
             if (ep2.Length != 2)
@@ -280,6 +300,7 @@ namespace CustomNATClientA
             {
                 Console.WriteLine($"NAT网关为本机分配了两个出口: {ipA1.ToString()}, {ipA2.ToString()}");
                 Console.WriteLine("\r\n检测到【NAT严格 - 对称NAT】, 探测完成");
+                strNATResult = "对称NAT";
                 funcEnd();
                 return;
             }
@@ -304,6 +325,7 @@ namespace CustomNATClientA
             {
                 Console.WriteLine($"收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
                 Console.WriteLine("\r\n检测到【NAT中等 - 受限圆锥NAT】, 探测完成");
+                strNATResult = "受限圆锥NAT";
                 funcEnd();
                 return;
             }
@@ -311,6 +333,7 @@ namespace CustomNATClientA
             {
                 Console.WriteLine("未能收到伙伴回包");
                 Console.WriteLine("\r\n检测到【NAT中等 - 端口受限圆锥NAT】, 探测完成");
+                strNATResult = "端口受限圆锥NAT";
                 funcEnd();
                 return;
             }
