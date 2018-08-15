@@ -133,9 +133,18 @@ namespace CustomNATClientA
             string myName = Guid.NewGuid().ToString();
             UdpClient udpClient = new UdpClient(0);
             Console.WriteLine($"本机名称: {myName}");
-            Console.WriteLine($"本地地址: {udpClient.Client.LocalEndPoint.ToString()}");
+            // 获取一下本地地址
+            IPEndPoint ipLocal = udpClient.Client.LocalEndPoint as IPEndPoint;
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            {
+                socket.Connect("1.1.1.1", 1);
+                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                ipLocal = new IPEndPoint(endPoint.Address, ipLocal.Port);
+                socket.Close();
+            }
+            Console.WriteLine($"本地地址: {ipLocal.ToString()}");
             strMyName = myName;
-            strLocalIP = udpClient.Client.LocalEndPoint.ToString();
+            strLocalIP = ipLocal.ToString();
             Thread.Sleep(configMgr.WaitMiliseconds);
 
             Func<int> funcEnd =
