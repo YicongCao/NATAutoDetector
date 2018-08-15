@@ -125,6 +125,7 @@ namespace CustomNATClientA
         }
         static void Main(string[] args)
         {
+            Console.WriteLine("NAT 探查程序开始运行");
             MyConfigMgr configMgr = new MyConfigMgr();
             configMgr.Init();
             string myName = Guid.NewGuid().ToString();
@@ -139,9 +140,12 @@ namespace CustomNATClientA
                     List<Request> listReqEnd = new List<Request>();
                     listReqEnd.Add(new Request("erase", myName));
                     SendRequestsTimeout(listReqEnd, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
+                    Console.WriteLine("\r\n按任意键退出探测程序");
+                    Console.ReadKey(true);
                     return 0;
                 };
 
+            Console.WriteLine("\r\n正在联系户口服务器");
             List<Request> listReq = new List<Request>();
             listReq.Add(new Request("register", myName));
             listReq.Add(new Request("queryuser", myName));
@@ -155,9 +159,10 @@ namespace CustomNATClientA
             IPEndPoint ipA2 = null;
             IPEndPoint ipB = null;
 
+            // 这里分别解析四条应答的内容，写的有点繁琐了
             if (listResp.Count != 4)
             {
-                Console.WriteLine("首次与户口服务器通信失败");
+                Console.WriteLine("取得户口服务应答失败");
                 return;
             }
 
@@ -221,43 +226,49 @@ namespace CustomNATClientA
             }
             if (listResp[3].ResultInteger == 0)
             {
-                Console.WriteLine("命令B给本机发包成功");
+                Console.WriteLine("命令伙伴给本机发包成功");
             }
             else
             {
-                Console.WriteLine("命令B给本机发包失败");
+                Console.WriteLine("命令伙伴给本机发包失败");
                 funcEnd();
                 return;
             }
 
             // 验证NAT开放
+            Console.WriteLine("\r\n尝试接收伙伴回包");
             string strRecvPacket = "";
             IPEndPoint ipRecvFrom = new IPEndPoint(IPAddress.Any, 0);
             bool bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, ref udpClient, configMgr.WaitMiliseconds);
             if (bRecv)
             {
-                Console.WriteLine($"\r\n收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
-                Console.WriteLine("\r\n检测到【NAT开放】, 程序结束");
+                Console.WriteLine($"收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
+                Console.WriteLine("\r\n检测到【NAT开放 - 完全圆锥NAT】, 探测完成");
                 funcEnd();
                 return;
             }
+            else
+            {
+                Console.WriteLine("未能收到伙伴回包");
+            }
 
             // 验证NAT严格
+            Console.WriteLine("\r\n尝试主动联系伙伴");
             listReq.Clear();
             listResp.Clear();
             listReq.Add(new Request("echoip", ""));
             listResp = SendRequestsTimeout(listReq, ipB, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1)
             {
-                Console.WriteLine("首次与B通信失败");
+                Console.WriteLine("主动联系伙伴失败");
                 funcEnd();
                 return;
             }
-            Console.WriteLine($"B给出的本机地址: {listResp[0].ResultString}");
+            Console.WriteLine($"伙伴给出的本机地址: {listResp[0].ResultString}");
             string[] ep2 = listResp[0].ResultString.Split(':');
             if (ep2.Length != 2)
             {
-                Console.WriteLine("B给出的本机地址格式错误");
+                Console.WriteLine("伙伴给出的本机地址格式错误");
                 funcEnd();
                 return;
             }
@@ -267,36 +278,39 @@ namespace CustomNATClientA
             string strPortFromB = ipA2.ToString().Split(':')[1];
             if (int.Parse(strPortFromS) != int.Parse(strPortFromB))
             {
-                Console.WriteLine($"\r\nNAT网关为本机分配了两个出口: {ipA1.ToString()}, {ipA2.ToString()}");
-                Console.WriteLine("\r\n检测到【NAT严格】, 程序结束");
+                Console.WriteLine($"NAT网关为本机分配了两个出口: {ipA1.ToString()}, {ipA2.ToString()}");
+                Console.WriteLine("\r\n检测到【NAT严格 - 对称NAT】, 探测完成");
                 funcEnd();
                 return;
             }
 
             // 验证NAT中等的具体类型
+            Console.WriteLine("\r\n尝试命令伙伴在另一端口发包");
             listReq.Clear();
             listResp.Clear();
-            listReq.Add(new Request("echoip", ""));
-            listResp = SendRequestsTimeout(listReq, ipB, ref udpClient, configMgr.WaitMiliseconds);
+            listReq.Add(new Request("a2b_r", ""));
+            listResp = SendRequestsTimeout(listReq, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1 || listResp[0].ResultInteger != 0)
             {
-                Console.WriteLine("让S命令B发送包给我失败");
+                Console.WriteLine("联系户口服务器失败");
                 funcEnd();
                 return;
             }
+            Console.WriteLine("命令传达成功, 伙伴已在另一端口发包");
             strRecvPacket = "";
             ipRecvFrom = new IPEndPoint(IPAddress.Any, 0);
             bRecv = ReceivePacketTimeout(ref strRecvPacket, ref ipRecvFrom, ref udpClient, configMgr.WaitMiliseconds);
             if (bRecv)
             {
-                Console.WriteLine($"\r\n收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
-                Console.WriteLine("\r\n检测到【NAT中等 - 受限圆锥NAT】, 程序结束");
+                Console.WriteLine($"收到来自伙伴 {ipRecvFrom.ToString()} 的回包, 包体内容是:\r\n{strRecvPacket}");
+                Console.WriteLine("\r\n检测到【NAT中等 - 受限圆锥NAT】, 探测完成");
                 funcEnd();
                 return;
             }
             else
             {
-                Console.WriteLine("\r\n检测到【NAT中等 - 端口受限圆锥NAT】, 程序结束");
+                Console.WriteLine("未能收到伙伴回包");
+                Console.WriteLine("\r\n检测到【NAT中等 - 端口受限圆锥NAT】, 探测完成");
                 funcEnd();
                 return;
             }
