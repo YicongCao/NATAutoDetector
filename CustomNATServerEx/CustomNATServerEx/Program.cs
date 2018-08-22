@@ -89,6 +89,11 @@ namespace CustomNATServer
                             listResp.Add(new Response("not found", 2));
                         }
                         break;
+                    case "queryall":
+                        string strAllUserName = natMgr.GetAllClientName(";");
+                        Log($"已获取所有计算机列表: {strAllUserName}");
+                        listResp.Add(new Response(strAllUserName, 0));
+                        break;
                     case "echoip":
                         Log($"来自该计算机的IP回显请求: [addr] {arg1.ToString()}");
                         listResp.Add(new Response(arg1.ToString(), 0));

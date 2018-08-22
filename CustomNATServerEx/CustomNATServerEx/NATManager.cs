@@ -42,5 +42,19 @@ namespace CustomNATServer
                 Console.WriteLine($"[name] {kv.Key.ToString()} [addr] {kv.Value.ToString()}");
             }
         }
+        public string GetAllClientName(string strSeparator)
+        {
+            StringBuilder strBuilder = new StringBuilder();
+            foreach (var kv in mapClients)
+            {
+                strBuilder.Append(kv.Key.ToString() + strSeparator);
+            }
+            string strResult = strBuilder.ToString();
+            if (strResult.EndsWith(strSeparator))
+            {
+                strResult = strResult.Substring(0, strResult.Length - strSeparator.Length);
+            }
+            return strResult;
+        }
     }
 }
