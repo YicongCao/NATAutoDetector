@@ -28,12 +28,12 @@ namespace CustomNATClientA
             var timeToWait = TimeSpan.FromMilliseconds(timeMiliseconds);
             var asyncResult = udpClient.BeginReceive(null, null);
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
-            IPEndPoint remoteIP = null;
+            //IPEndPoint remoteIP = null;
             if (asyncResult.IsCompleted)
             {
                 try
                 {
-                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref remoteIP);
+                    byte[] receivedData = udpClient.EndReceive(asyncResult, ref ipFrom);
                     content = Encoding.ASCII.GetString(receivedData);
                     return true;
                 }
@@ -189,6 +189,7 @@ namespace CustomNATClientA
             if (listResp.Count != 4)
             {
                 Console.WriteLine("取得户口服务应答失败");
+                funcEnd();
                 return;
             }
 
