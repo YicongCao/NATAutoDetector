@@ -28,7 +28,6 @@ namespace CustomNATClientA
             var timeToWait = TimeSpan.FromMilliseconds(timeMiliseconds);
             var asyncResult = udpClient.BeginReceive(null, null);
             asyncResult.AsyncWaitHandle.WaitOne(timeToWait);
-            //IPEndPoint remoteIP = null;
             if (asyncResult.IsCompleted)
             {
                 try
@@ -39,22 +38,14 @@ namespace CustomNATClientA
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"接收异常: {ex.Message}");
                     return false;
                 }
             }
             else
             {
-                RenewUdpClient(ref udpClient);
-                
                 // 尝试结束上一个没收到包的Receive请求, 否则对下一次会造成干扰
-                //try
-                //{
-                //    udpClient.EndReceive(asyncResult, ref remoteIP);
-                //}
-                //catch (Exception ex2)
-                //{
-                //    Console.WriteLine($"ReceivePacketTimeout, EndRecive 异常: {ex2.Message}");
-                //}
+                RenewUdpClient(ref udpClient);
                 return false;
             }
         }
@@ -92,20 +83,12 @@ namespace CustomNATClientA
                 }
                 catch (Exception ex)
                 {
-                    
+                    Console.WriteLine($"接收异常: {ex.Message}");
                 }
             }
             else
             {
                 RenewUdpClient(ref udpClient);
-                //try
-                //{
-                //    udpClient.EndReceive(asyncResult, ref remoteIP);
-                //}
-                //catch (Exception ex2)
-                //{
-                //    Console.WriteLine($"SendRequestsTimeout, EndRecive 异常: {ex2.Message}");
-                //}
             }
             
             if (strResp != "")
@@ -117,11 +100,10 @@ namespace CustomNATClientA
         }
         static void RenewUdpClient(ref UdpClient udpClient)
         {
-            string strAddr = udpClient.Client.LocalEndPoint.ToString();
-            string strPort = strAddr.Split(':')[1];
-            int nPort = int.Parse(strPort);
+            string strSelfAddr = udpClient.Client.LocalEndPoint.ToString();
+            IPEndPoint ipSelfAddr = CustomNATCommon.Utils.CreateIPEndPoint(strSelfAddr);
             udpClient.Close();
-            udpClient = new UdpClient(nPort);
+            udpClient = new UdpClient(ipSelfAddr.Port);
         }
         static void Main(string[] args)
         {
@@ -206,27 +188,14 @@ namespace CustomNATClientA
             if (listResp[1].ResultInteger == 0)
             {
                 Console.WriteLine($"查询本机地址成功: {listResp[1].ResultString}");
-                var strIPSlice = listResp[1].ResultString.Split(':');
-                if (strIPSlice.Length == 2)
+                ipA1 = CustomNATCommon.Utils.CreateIPEndPoint(listResp[1].ResultString);
+                if (ipA1 == null)
                 {
-                    try
-                    {
-                        ipA1 = new IPEndPoint(IPAddress.Parse(strIPSlice[0]), int.Parse(strIPSlice[1]));
-                        strOutIP = ipA1.ToString();
-                    }
-                    catch
-                    {
-                        Console.WriteLine("解析本机IP地址异常");
-                        funcEnd();
-                        return;
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("解析本机IP地址失败");
+                    Console.WriteLine("解析本机IP地址异常");
                     funcEnd();
                     return;
                 }
+                strOutIP = ipA1.ToString();
             }
             else
             {
@@ -237,14 +206,13 @@ namespace CustomNATClientA
             if (listResp[2].ResultInteger == 0)
             {
                 Console.WriteLine($"查询伙伴地址成功: {listResp[2].ResultString}");
-                string[] ep = listResp[2].ResultString.Split(':');
-                if (ep.Length != 2)
+                ipB = CustomNATCommon.Utils.CreateIPEndPoint(listResp[2].ResultString);
+                if (ipB == null)
                 {
                     Console.WriteLine("伙伴地址格式错误");
                     funcEnd();
                     return;
                 }
-                ipB = new IPEndPoint(IPAddress.Parse(ep[0]), int.Parse(ep[1]));
             }
             else
             {
@@ -295,18 +263,15 @@ namespace CustomNATClientA
             }
             Console.WriteLine("主动联系伙伴成功");
             Console.WriteLine($"伙伴给出的本机地址: {listResp[0].ResultString}");
-            string[] ep2 = listResp[0].ResultString.Split(':');
-            if (ep2.Length != 2)
+            ipA2 = CustomNATCommon.Utils.CreateIPEndPoint(listResp[0].ResultString);
+            if (ipA2 == null)
             {
                 Console.WriteLine("伙伴给出的本机地址格式错误");
                 funcEnd();
                 return;
             }
-            ipA2 = new IPEndPoint(IPAddress.Parse(ep2[0]), int.Parse(ep2[1]));
 
-            string strPortFromS = ipA1.ToString().Split(':')[1];
-            string strPortFromB = ipA2.ToString().Split(':')[1];
-            if (int.Parse(strPortFromS) != int.Parse(strPortFromB))
+            if (ipA1.Port != ipA2.Port)
             {
                 Console.WriteLine($"NAT网关为本机分配了两个出口: {ipA1.ToString()}, {ipA2.ToString()}");
                 Console.WriteLine("\r\n检测到【NAT严格 - 对称NAT】, 探测完成");

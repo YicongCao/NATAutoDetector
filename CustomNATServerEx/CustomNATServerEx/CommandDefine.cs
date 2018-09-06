@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Xml.Linq;
 
 // 约定
@@ -143,6 +144,46 @@ namespace CustomNATCommon
                 Console.WriteLine($"XML请求解析异常: {e.Message}");
             }
             return listResp;
+        }
+    }
+    /// <summary>
+    /// 提供一些实用功能
+    /// </summary>
+    public class Utils
+    {
+        /// <summary>
+        /// 根据文本创建IP节点对象（支持IPv4和IPv6）
+        /// </summary>
+        /// <param name="endPoint"></param>
+        /// <returns></returns>
+        public static IPEndPoint CreateIPEndPoint(string endPoint)
+        {
+            string[] ep = endPoint.Split(':');
+            if (ep.Length < 2)
+            {
+                return null;
+            }
+            IPAddress ip;
+            if (ep.Length > 2)
+            {
+                if (!IPAddress.TryParse(string.Join(":", ep, 0, ep.Length - 1), out ip))
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                if (!IPAddress.TryParse(ep[0], out ip))
+                {
+                    return null;
+                }
+            }
+            int port;
+            if (!int.TryParse(ep[ep.Length - 1], System.Globalization.NumberStyles.None, System.Globalization.NumberFormatInfo.CurrentInfo, out port))
+            {
+                return null;
+            }
+            return new IPEndPoint(ip, port);
         }
     }
 }

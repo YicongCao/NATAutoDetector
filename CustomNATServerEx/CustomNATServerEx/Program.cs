@@ -115,19 +115,10 @@ namespace CustomNATServer
                     case "a2b_r":
                         Log($"来自该计算机的a2b_r请求: [addr] {arg1.ToString()} [param] {r.Param}");
                         string strParamIPA = arg1.ToString();
-                        var strIPSlice = r.Param.Split(':', 2);
-                        if (strIPSlice.Length == 2)
+                        IPEndPoint ipParam = CustomNATCommon.Utils.CreateIPEndPoint(r.Param);
+                        if (ipParam != null)
                         {
-                            try
-                            {
-                                IPEndPoint ipa = new IPEndPoint(IPAddress.Parse(strIPSlice[0]), int.Parse(strIPSlice[1]));
-                                strParamIPA = ipa.ToString();
-                            }
-                            catch
-                            {
-                                Log($"该请求的 param 非法");
-                                strParamIPA = arg1.ToString();
-                            }
+                            strParamIPA = ipParam.ToString();
                         }
                         List<Request> listReqForB = new List<Request>();
                         listReqForB.Add(new Request("a2b_r", strParamIPA));

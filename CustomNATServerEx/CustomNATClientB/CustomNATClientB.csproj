@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\CustomNATServerEx\CommandDefine.cs" Link="CommandDefine.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="socket.core" Version="1.0.13" />
   </ItemGroup>
 

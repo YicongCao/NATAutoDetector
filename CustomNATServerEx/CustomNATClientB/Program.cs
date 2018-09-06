@@ -71,19 +71,7 @@ namespace CustomNATClientB
                     
                     case "a2b_r":
                         Log($"来自该计算机的a2b_r请求: [addr] {arg1.ToString()} [param] {r.Param}");
-                        IPEndPoint ipa = null;
-                        var strIPSlice = r.Param.Split(':', 2);
-                        if (strIPSlice.Length == 2)
-                        {
-                            try
-                            {
-                                ipa = new IPEndPoint(IPAddress.Parse(strIPSlice[0]), int.Parse(strIPSlice[1]));
-                            }
-                            catch
-                            {
-                                Log($"该请求的 param 非法");
-                            }
-                        }
+                        IPEndPoint ipa = CustomNATCommon.Utils.CreateIPEndPoint(r.Param);
                         List<Response> listRespForA = new List<Response>();
                         listRespForA.Add(new Response("a2b_r_confirm", 0));
                         string strRespForA = Actions.PackResponsesIntoXML(listRespForA);

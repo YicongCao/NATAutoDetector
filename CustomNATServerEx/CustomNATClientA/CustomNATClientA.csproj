@@ -42,7 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CommandDefineCopy.cs" />
+    <Compile Include="..\CustomNATServerEx\CommandDefine.cs">
+      <Link>CommandDefine.cs</Link>
+    </Compile>
     <Compile Include="ConfigMgr.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
