@@ -90,12 +90,12 @@ namespace CustomNATClientA
             {
                 RenewUdpClient(ref udpClient);
             }
-            
+
             if (strResp != "")
             {
                 listResp = Actions.ParseResponsesFromXML(strResp);
             }
-            
+
             return listResp;
         }
         static void RenewUdpClient(ref UdpClient udpClient)
@@ -108,7 +108,8 @@ namespace CustomNATClientA
         static void Main(string[] args)
         {
             // For AutoLog
-            string strNATResult = "", strLocalIP = "", strOutIP = "", strMyName="";
+            string strNATResult = "", strLocalIP = "", strOutIP = "", strMyName = "";
+            strNATResult = "探测失败";
             Console.WriteLine("NAT 探查程序开始运行");
             MyConfigMgr configMgr = new MyConfigMgr();
             configMgr.Init();
@@ -138,7 +139,8 @@ namespace CustomNATClientA
                     udpClient.Close();
                     if (configMgr.AutoPilot)
                     {
-                        string strLog = configMgr.AutoLogFormat.Replace("result", strNATResult)
+                        string strLog = configMgr.AutoLogFormat.Replace("date", DateTime.Now.ToString())
+                                                               .Replace("result", strNATResult)
                                                                .Replace("name", strMyName)
                                                                .Replace("localip", strLocalIP)
                                                                .Replace("outip", strOutIP);
@@ -170,7 +172,8 @@ namespace CustomNATClientA
             // 这里分别解析四条应答的内容，写的有点繁琐了
             if (listResp.Count != 4)
             {
-                Console.WriteLine("取得户口服务应答失败");
+                strNATResult = "取得户口服务应答失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -181,7 +184,8 @@ namespace CustomNATClientA
             }
             else
             {
-                Console.WriteLine("注册本机名称失败");
+                strNATResult = "注册本机名称失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -191,7 +195,8 @@ namespace CustomNATClientA
                 ipA1 = CustomNATCommon.Utils.CreateIPEndPoint(listResp[1].ResultString);
                 if (ipA1 == null)
                 {
-                    Console.WriteLine("解析本机IP地址异常");
+                    strNATResult = "解析IP回显结果异常";
+                    Console.WriteLine(strNATResult);
                     funcEnd();
                     return;
                 }
@@ -199,7 +204,8 @@ namespace CustomNATClientA
             }
             else
             {
-                Console.WriteLine("查询本机地址失败");
+                strNATResult = "取得IP回显请求失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -209,14 +215,16 @@ namespace CustomNATClientA
                 ipB = CustomNATCommon.Utils.CreateIPEndPoint(listResp[2].ResultString);
                 if (ipB == null)
                 {
-                    Console.WriteLine("伙伴地址格式错误");
+                    strNATResult = "解析伙伴IP地址异常";
+                    Console.WriteLine(strNATResult);
                     funcEnd();
                     return;
                 }
             }
             else
             {
-                Console.WriteLine("查询伙伴地址失败");
+                strNATResult = "取得伙伴地址失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -226,7 +234,8 @@ namespace CustomNATClientA
             }
             else
             {
-                Console.WriteLine("命令伙伴给本机发包失败");
+                strNATResult = "命令伙伴给本机发包失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -257,7 +266,8 @@ namespace CustomNATClientA
             listResp = SendRequestsTimeout(listReq, ipB, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1)
             {
-                Console.WriteLine("主动联系伙伴失败");
+                strNATResult = "主动联系伙伴失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -266,7 +276,8 @@ namespace CustomNATClientA
             ipA2 = CustomNATCommon.Utils.CreateIPEndPoint(listResp[0].ResultString);
             if (ipA2 == null)
             {
-                Console.WriteLine("伙伴给出的本机地址格式错误");
+                strNATResult = "解析伙伴给出的本机出口IP错误";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
@@ -288,7 +299,8 @@ namespace CustomNATClientA
             listResp = SendRequestsTimeout(listReq, configMgr.IPServer, ref udpClient, configMgr.WaitMiliseconds);
             if (listResp.Count != 1 || listResp[0].ResultInteger != 0)
             {
-                Console.WriteLine("联系户口服务器失败");
+                strNATResult = "联系户口服务器，命令伙伴在另一端口发包失败";
+                Console.WriteLine(strNATResult);
                 funcEnd();
                 return;
             }
