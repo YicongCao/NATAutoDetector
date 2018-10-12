@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <config>
-  <!-- AutoLogFormat: 可包含result(NAT类型结果), outip(出口IP), localip(本地IP), name(随机生成的本机名称)-->
-  <common ServerIP="193.112.152.178" ServerPort="7777" Wait="2000" AutoPilot="True" AutoLogFormat="result, name, localip, outip"/>
+    <!-- AutoLogFormat: 可包含date(日期), result(NAT类型结果), outip(出口IP), localip(本地IP), name(随机生成的本机名称)-->
+    <common ServerIP="193.112.152.178" ServerPort="7777" Wait="2000" AutoPilot="True" AutoLogFormat="[date] result, name, localip, outip" />
 </config>
