@@ -1,10 +1,10 @@
-# 助力网游加速 之 改善网络的NAT类型
+# 改善网络的NAT类型
 
 ## 背景
 
 去年的“吃鸡”游戏让不少玩家都有了一个Steam账号，但作为一个合格的硬核玩家，Steam游戏库里想必不止有吃鸡一款游戏。
 
-随着Steam、Origin、PlayU（滑稽）等平台的普及，越来越多优秀的大作逐渐进入国内玩家视野。比如GTA5、荣耀战魂、刺客信条等。今天我们要讨论的，就是站在腾讯网游加速器（广告）的角度，讨论一下这类P2P游戏的联机过程中，遇到的NAT问题。
+随着Steam、Origin、PlayU（滑稽）等平台的普及，越来越多优秀的大作逐渐进入国内玩家视野。比如GTA5、荣耀战魂、刺客信条等。本文讨论的，就是在开发网游加速器项目时，解决这类P2P游戏的联机过程中遇到的NAT问题。虽然已经离开原项目组，但解决NAT问题的过程还是十分有趣、值得记录的。
 
 ## 痛点
 
@@ -12,17 +12,17 @@
 
 于是……
 
-![GTA5-NATSTRICT](.\NAT分享\GTA5-NATSTRICT.png)
+![GTA5-NATSTRICT](https://ws2.sinaimg.cn/large/006tNbRwgy1fxpwpb338xj30k00bmgmc.jpg)
 
-![SPLATOONDISCONNECT](.\NAT分享\SPLATOONDISCONNECT.jpg)
+![SPLATOONDISCONNECT](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwpdh7rzj30zk0k0q6a.jpg)
 
-![PS4NAT](.\NAT分享\PS4NAT.jpg)
+![PS4NAT](https://ws2.sinaimg.cn/large/006tNbRwgy1fxpwpfswqxj30j60asjrr.jpg)
 
 拜育碧、R星所赐，让我们不得不了解到NAT、DMZ、uPnP的概念，让我们一次又一次充当Stun客户端的测试人员。一番折腾下来，如果屏幕上仍旧显示“NAT严格”，那么我们面对的将是空空荡荡的训练场，怎么也合流不到一个房间的好友，和八国语言所描写的“Internet Connection Lost”。
 
 ## 理论分析
 
-![nat-router](.\NAT分享\nat-router.jpg)
+![nat-router](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwphs4hlj30b4042aa1.jpg)
 
 NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4地址枯竭、保护内网电脑不被侵入、实现带宽分享等。
 
@@ -32,15 +32,15 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 嗯，没错，NAT网关就是给你分配公网IP和端口用的。
 
-![LocalIP](.\NAT分享\LocalIP.png)
+![LocalIP](https://ws4.sinaimg.cn/large/006tNbRwgy1fxpwpja3ddj30u00xvjt7.jpg)
 
 嗯，现在子网里有n台电脑，每台电脑访问外网都需要一个公网IP和端口。就像茴字有四种写法一样，给这些电脑分配IP/Port的方式也有四种：
 
 1. 静态分配，每个内网IP都能映射到一个互不重复的公网IP，端口则直接服用TCP/UDP包的源端口。嗯，你想得美……
-2. 完全圆锥NAT，一般NAT网关会复用少量几个公网IP，把源端口映射成互不重复的本地端口，以此区分不同的socket连接。然后在该IP/Port上，把包送出去。如下图所示，在该端口上连接多个目标，画成图就像个锥子一样，所以得名“完全圆锥NAT”。这种类型的NAT，就是游戏上显示的“NAT开放”。![FULLCONENAT](.\NAT分享\FULLCONENAT.png)
-3. 受限圆锥NAT，在Client主动与Server1建立连接的过程中，NAT网关为Client分配了IP和端口，Server2得知了该IP和端口之后，直接往该端口发包，NAT网关会直接做丢弃处理，不会转发给Client。这种类型的NAT，圆锥结构是受限的，Client必须主动给Server发包，Server才能在该端口上把包回给Client。![RESCONNAT](.\NAT分享\RESCONNAT.png)
-4. 端口受限圆锥NAT，在受限圆锥的基础上，对Server端口也做了限制。如果Server更换本地端口，继续往NAT网关的IP和给Client分配的端口上发包，网关也会做丢弃处理。这种类型的NAT，既不承认陌生IP，也不承认熟悉IP的陌生端口。![PORTRESCONNAT](.\NAT分享\PORTRESCONNAT.png)
-5. 对称NAT，以上几种NAT类型，Client不管连接多少个不同的Server，网关都会分配同一个端口。如果网关为Client所连接的每个不同Server都分配不同端口的话，那么“对称NAT”就诞生了。这种类型的NAT，也就是游戏中的“NAT严格”。之所以说是严格，是因为Server2能从Server1那里得知Client的外网IP和端口，但却无法与之建立连接。而Server2，在游戏中的实际身份，就可以是与你匹配的玩家。![SYMNAT](.\NAT分享\SYMNAT.png)
+2. 完全圆锥NAT，一般NAT网关会复用少量几个公网IP，把源端口映射成互不重复的本地端口，以此区分不同的socket连接。然后在该IP/Port上，把包送出去。如下图所示，在该端口上连接多个目标，画成图就像个锥子一样，所以得名“完全圆锥NAT”。这种类型的NAT，就是游戏上显示的“NAT开放”。![FULLCONENAT](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwppm6cdj30m80a0mxb.jpg)
+3. 受限圆锥NAT，在Client主动与Server1建立连接的过程中，NAT网关为Client分配了IP和端口，Server2得知了该IP和端口之后，直接往该端口发包，NAT网关会直接做丢弃处理，不会转发给Client。这种类型的NAT，圆锥结构是受限的，Client必须主动给Server发包，Server才能在该端口上把包回给Client。![RESCONNAT](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwpt1h2ij30m80a0t8w.jpg)
+4. 端口受限圆锥NAT，在受限圆锥的基础上，对Server端口也做了限制。如果Server更换本地端口，继续往NAT网关的IP和给Client分配的端口上发包，网关也会做丢弃处理。这种类型的NAT，既不承认陌生IP，也不承认熟悉IP的陌生端口。![PORTRESCONNAT](https://ws4.sinaimg.cn/large/006tNbRwgy1fxpwpvf61yj30m80a00sw.jpg)
+5. 对称NAT，以上几种NAT类型，Client不管连接多少个不同的Server，网关都会分配同一个端口。如果网关为Client所连接的每个不同Server都分配不同端口的话，那么“对称NAT”就诞生了。这种类型的NAT，也就是游戏中的“NAT严格”。之所以说是严格，是因为Server2能从Server1那里得知Client的外网IP和端口，但却无法与之建立连接。而Server2，在游戏中的实际身份，就可以是与你匹配的玩家。![SYMNAT](https://ws1.sinaimg.cn/large/006tNbRwgy1fxpwpynn89j30m80a0mxe.jpg)
 
 我们把NAT类型从“好”到“坏”做个分级：NAT开放（完全圆锥NAT）、NAT中等（受限圆锥NAT、端口受限圆锥NAT）、NAT严格（对称NAT）。这就是游戏里探测到的NAT类型。
 
@@ -140,7 +140,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 如果这三个问题都没有思路，建议查阅一下相关资料再继续阅读。
 
-![Lizi](.\NAT分享\Lizi.jpg)
+![Lizi](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwq2vmbyj307106twfg.jpg)
 
 假设游戏场景是一个大操场，操场上有数不清的玩家：
 
@@ -162,7 +162,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 在绝地求生的加速线路上运行NAT探测程序，与实验结果相符：
 
-![PUBGLineNATStrict](.\NAT分享\PUBGLineNATStrict.png)
+![PUBGLineNATStrict](https://ws4.sinaimg.cn/large/006tNbRwgy1fxpwq66o60j31el0u0tpm.jpg)
 
 截图里是一个NAT探测程序（后面会提到）（后面好像要提很多东西的样子，我他喵好虚啊，这坑到底能不能填上=。=），从日志中可以看到，客户端在分别连接193.112.152.178:7777 和 139.199.88.43:12780 这两台服务器时，S5服务器分别分配了两个不同的端口 47049 和 55332，也就是对称型NAT。
 
@@ -178,7 +178,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 大体是这个样子：
 
-![NATProto](.\NAT分享\NATProto.png)
+![NATProto](https://ws3.sinaimg.cn/large/006tNbRwgy1fxpwq8xzq9j30hu0bv74a.jpg)
 
 玩家A连接Server时S5服务器分配了本地端口a，那么玩家B通过S5的IP / 端口a发包，S5服务器会把在端口a上收到的包，都转发回玩家A。
 
@@ -190,7 +190,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 新版的S5程序，部署在了P2P游戏的线路上，期待将NAT等级提升一个档次。不过上线之后，运行探测程序，给出的结果却是端口受限圆锥NAT（NAT中等）。如图所示：
 
-![CustomNATMiddle](.\NAT分享\CustomNATMiddle.jpg)
+![CustomNATMiddle](https://ws2.sinaimg.cn/large/006tNbRwgy1fxpwqbeqvjj31900u0k5y.jpg)
 
 也就是说，从表现上来看，S5服务器是不信任未知来源的回包的。并且不仅是受限圆锥，也做了端口限定。
 
@@ -198,7 +198,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 于是查了一下S5服务器的安全组，它的入站规则是这样的：
 
-![S5FWBefore](.\NAT分享\S5FWBefore.png)
+![S5FWBefore](https://ws4.sinaimg.cn/large/006tNbRwgy1fxpwqdzj4oj31bq0ggwg3.jpg)
 
 其中7777-7780是代理转发使用的UDP和TCP端口，20005和7781分别是后续扩展的专用端口。这套规则，对除此之外的端口上收到的包，全部Drop。
 
@@ -208,7 +208,7 @@ NAT已经是个老生常谈的问题，需要它的原因有很多，比如IPv4�
 
 经过运维同学的考量，将入站规则逐步放宽，仅针对NAT的线路放开随机端口的入站限制，调整之后，探测程序终于给出结果，线路变成了NAT开放。
 
-![ClientA](.\NAT分享\ClientA.png)
+![ClientA](https://ws2.sinaimg.cn/large/006tNbRwgy1fxpwqg16nfj30wl0u0tgb.jpg)
 
 可喜可贺，可口可乐！
 
@@ -324,7 +324,7 @@ https://gitee.com/nuetrino/CustomNATServerEx.git
 
 最后，强烈安利 RoslynPad，相信 C# 的同好肯定知道神器 LINQPad，但是前者的出现让我打消了购买后者专业版的想法。
 
-![RoslynPad](.\NAT分享\RoslynPad.png)
+![RoslynPad](https://ws1.sinaimg.cn/large/006tNbRwgy1fxpwqjso1uj31do0u00v3.jpg)
 
 *图例：随手写写画画，利用socket连接时的行为获取本地IP地址*
 
